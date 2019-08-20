@@ -26,14 +26,14 @@ implementation
 uses
   System.SysUtils,
   Vcl.Dialogs, System.UITypes,
-  ResourceLoaderBase,
   ZipResourceLoader;
 
 procedure TMainForm.FormShow(Sender: TObject);
 var
-  LZipResource: IResourceLoader;
+  LZipResource: IZipResourceLoader;
 begin
-  LZipResource := TZipResourceLoader.Create('FirstAndSecondFilesZipResource');
+  LZipResource := TZipResourceLoader.Create;
+  LZipResource.LoadResource('FirstAndSecondFilesZipResource');
   try
     OutputRichEdit.Lines.Add(
       StringOf(

@@ -4,16 +4,21 @@ interface
 
 uses
   ResourceLoaderBase,
+  System.Zip,
   System.Classes,
   System.SysUtils;
 
 type
-  TZipResourceLoader = class(TResourceLoaderBase)
+  IZipResourceLoader = interface
+    ['{F19CD9DC-1977-4A3A-97BC-6E81FBCB8AAA}']
+    function LoadResource(const AResourceName: string): TResourceStream;
+  end;
+
+  TZipResourceLoader = class(TResourceLoaderBase, IZipResourceLoader)
   private
-    FResourceName: string;
-    FExtractedStream: TStream;
+    FZipFile: TZipFile;
   public
-    constructor Create(const AResourceName: string);
+    function LoadResource(const AResourceName: string): TResourceStream; reintroduce;
     destructor Destroy; override;
     // AFile is file path and path name using "/" as path delimiter.
     function ExtractFileToBytes(const AFile: string): TBytes;
@@ -21,19 +26,27 @@ type
 
 implementation
 
-uses
-  System.Zip;
-//  System.SysUtils;
-
-constructor TZipResourceLoader.Create(const AResourceName: string);
+function TZipResourceLoader.LoadResource(const AResourceName: string): TResourceStream;
 begin
-  FResourceName := AResourceName;
+  if Assigned(FZipFile) then
+    FreeAndNil(FZipFile);
+
+  inherited LoadResource(AResourceName, 'Zip');
+  FZipFile := TZipFile.Create;
+  try
+    FZipFile.Open(ResourceStream, zmRead);
+  except
+    FZipFile.Free;
+    raise;
+  end;
+
+  Result := ResourceStream;
 end;
 
 destructor TZipResourceLoader.Destroy;
 begin
-  if Assigned(FExtractedStream) then
-    FExtractedStream.Free;
+  if Assigned(FZipFile) then
+    FZipFile.Free;
 
   inherited;
 end;
@@ -41,28 +54,22 @@ end;
 // AFile is file path and path name using "/" as path delimiter.
 function TZipResourceLoader.ExtractFileToBytes(const AFile: string): TBytes;
 var
-  LZipFile: TZipFile;
+  LBytes: TBytes;
 begin
-  LoadResourceToStream(FResourceName, 'Zip');
-  ValidateResourceLoadedToStream;
+  if not Assigned(FZipFile) then
+    raise Exception.Create('Please load resource.');
 
-  LZipFile := TZipFile.Create;
   try
-    LZipFile.Open(FResourceStream, zmRead);
-
-    try
-      LZipFile.Read(AFile, Result);
-    except
-      on E: Exception do
-      begin
-        E.Message := E.Message + #13#10 + 'File to extract: ' + AFile;
-        raise;
-      end;
+    FZipFile.Read(AFile, LBytes);
+  except
+    on E: Exception do
+    begin
+      E.Message := E.Message + #13#10 + 'File to extract: ' + AFile;
+      raise;
     end;
-
-  finally
-    LZipFile.Free;
   end;
+
+  Result := LBytes;
 end;
 
 end.

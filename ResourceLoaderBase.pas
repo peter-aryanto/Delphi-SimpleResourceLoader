@@ -8,18 +8,19 @@ uses
 type
   IResourceLoader = interface
     ['{F19CD9DC-1977-4A3A-97BC-6E81FBCB8AAA}']
-    function LoadResourceToStream(const AResourceName: string;
+    function LoadResource(const AResourceName: string;
       const AResourceType: string
     ): TResourceStream;
   end;
 
-  TResourceLoaderBase = class (TInterfacedObject, IResourceLoader)
-  protected
+  TResourceLoaderBase = class abstract(TInterfacedObject, IResourceLoader)
+  private
     FResourceStream: TResourceStream;
-    procedure ValidateResourceLoadedToStream; virtual; final;
+  protected
+    property ResourceStream: TResourceStream read FResourceStream;
   public
     destructor Destroy; override;
-    function LoadResourceToStream(const AResourceName: string;
+    function LoadResource(const AResourceName: string;
       const AResourceType: string
     ): TResourceStream; virtual;
   end;
@@ -37,7 +38,7 @@ begin
   inherited;
 end;
 
-function TResourceLoaderBase.LoadResourceToStream(const AResourceName: string;
+function TResourceLoaderBase.LoadResource(const AResourceName: string;
   const AResourceType: string
 ): TResourceStream;
 begin
@@ -46,12 +47,6 @@ begin
 
   FResourceStream := TResourceStream.Create(HInstance, AResourceName, PChar(AResourceType));
   Result := FResourceStream;
-end;
-
-procedure TResourceLoaderBase.ValidateResourceLoadedToStream;
-begin
-  if not Assigned(FResourceStream) then
-    raise Exception.Create('Please load resource to stream.');
 end;
 
 end.
